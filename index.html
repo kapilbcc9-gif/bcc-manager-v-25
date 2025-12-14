@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BCC Manager V30 (Teacher Fix)</title>
+    <title>BCC Manager V25 (Direct Cloud)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
@@ -21,15 +21,13 @@
         input, select, textarea { font-size: 16px !important; }
         .tab-active { border-bottom: 4px solid #128C7E; color: #128C7E; font-weight: bold; background: white; }
         .tab-inactive { color: #6b7280; background: #f9fafb; }
+        .tab-alert { border-bottom: 4px solid #ef4444; color: #ef4444; font-weight: bold; background: #fef2f2; }
         
+        /* Sync Status */
         #syncStatus { font-size: 10px; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-left: 5px; cursor: pointer; }
         .status-live { background-color: #dcfce7; color: #166534; }
         .status-offline { background-color: #fee2e2; color: #991b1b; }
         .status-local { background-color: #f3f4f6; color: #4b5563; border: 1px solid #ccc; }
-        
-        .rank-1 { background: linear-gradient(to right, #fff7e6, #fff); border-left: 4px solid #FFD700; }
-        .rank-2 { background: linear-gradient(to right, #f4f4f4, #fff); border-left: 4px solid #C0C0C0; }
-        .rank-3 { background: linear-gradient(to right, #fbf2eb, #fff); border-left: 4px solid #CD7F32; }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col max-w-5xl mx-auto shadow-xl">
@@ -37,19 +35,10 @@
     <!-- Sticky Header -->
     <div class="bg-white sticky top-0 z-30 shadow-sm">
         <div class="p-3 border-b flex justify-between items-center bg-[#128C7E] text-white">
-            <div class="flex flex-col">
-                <h1 class="font-bold text-lg flex items-center gap-1">
-                    <i class="fas fa-chalkboard-teacher"></i> BCC V30 
-                    <span id="syncStatus" class="status-local text-black">Connecting...</span>
-                </h1>
-            </div>
-            <div class="flex items-center gap-2">
-                <!-- TEACHER SELECTOR -->
-                <select id="teacherFilter" onchange="handleTeacherChange()" class="text-black text-xs p-1 rounded font-bold outline-none border-none bg-white shadow-sm">
-                    <option value="All">👑 Director (All)</option>
-                </select>
-                <button onclick="openSettings()" class="p-2"><i class="fas fa-cog fa-lg"></i></button>
-            </div>
+            <h1 class="font-bold text-lg flex items-center gap-1">
+                <i class="fas fa-cloud"></i> BCC V25 <span id="syncStatus" class="status-local">Connecting...</span>
+            </h1>
+            <button onclick="openSettings()" class="p-2"><i class="fas fa-cog fa-lg"></i></button>
         </div>
         
         <!-- TABS -->
@@ -72,22 +61,22 @@
         <!-- ATTENDANCE TAB CONTENT -->
         <div id="attendanceControls">
             <div class="flex gap-2 mb-4 overflow-x-auto pb-1">
-                <button onclick="openMonthlyReport()" class="flex-1 bg-purple-600 text-white px-3 py-2 rounded-lg font-bold text-sm shadow whitespace-nowrap flex items-center justify-center gap-2">
+                <button onclick="openMonthlyReport()" class="flex-1 bg-purple-600 text-white px-3 py-2 rounded-lg font-bold text-sm shadow flex items-center justify-center gap-2">
                     <i class="fas fa-calendar-alt"></i> Monthly View
                 </button>
-                <button onclick="openHistory()" class="flex-1 bg-blue-600 text-white px-3 py-2 rounded-lg font-bold text-sm shadow whitespace-nowrap flex items-center justify-center gap-2">
+                <button onclick="openHistory()" class="flex-1 bg-blue-600 text-white px-3 py-2 rounded-lg font-bold text-sm shadow flex items-center justify-center gap-2">
                     <i class="fas fa-history"></i> Logs
                 </button>
             </div>
 
             <div class="bg-white p-3 rounded-xl shadow mb-3">
                 <div class="flex justify-between items-center mb-2">
-                    <label class="text-xs font-bold text-gray-500 uppercase">Batch (Filtered by Teacher)</label>
+                    <label class="text-xs font-bold text-gray-500 uppercase">Current Batch</label>
                     <div class="text-xs text-gray-400" id="currentDateDisplay"></div>
                 </div>
                 <div class="flex gap-2 mb-2">
                     <select id="batchSelect" onchange="handleBatchChange()" class="w-full p-2 border rounded font-bold bg-gray-50 outline-none"></select>
-                    <button onclick="openAddBatchModal()" class="bg-gray-800 text-white px-3 rounded font-bold" title="Add Batch">+</button>
+                    <button onclick="addNewBatch()" class="bg-gray-800 text-white px-3 rounded font-bold">+</button>
                 </div>
                 
                 <div class="mt-2 flex gap-2">
@@ -98,9 +87,6 @@
                         <i class="fas fa-plus mr-1"></i> Add Student
                     </button>
                     <input type="file" id="csvInput" accept=".csv" class="hidden" onchange="importCSV(this)">
-                </div>
-                 <div class="mt-2 text-center">
-                     <button onclick="openLeftStudentsModal()" class="text-xs text-gray-500 underline">View Removed Students</button>
                 </div>
             </div>
         </div>
@@ -139,19 +125,18 @@
                     <h3 class="font-bold text-gray-700">Follow-up Dashboard</h3>
                     <button onclick="generateFollowUpList()" class="text-blue-600 text-xs font-bold bg-blue-50 px-2 py-1 rounded"><i class="fas fa-sync-alt"></i> Refresh</button>
                 </div>
-                <p class="text-xs text-gray-500 mb-2">Showing alerts for: <span id="followUpTeacherLabel" class="font-bold text-black">All Teachers</span></p>
                 <div class="grid grid-cols-2 gap-2 text-center">
                     <div class="bg-red-50 p-2 rounded border border-red-100">
                         <div class="text-xl font-bold text-red-600" id="pendingCallsCount">0</div>
-                        <div class="text-[10px] text-gray-500 uppercase font-bold">Pending</div>
+                        <div class="text-[10px] text-gray-500 uppercase font-bold">Pending Calls</div>
                     </div>
                     <div class="bg-green-50 p-2 rounded border border-green-100">
                         <div class="text-xl font-bold text-green-600" id="completedCallsCount">0</div>
-                        <div class="text-[10px] text-gray-500 uppercase font-bold">Done</div>
+                        <div class="text-[10px] text-gray-500 uppercase font-bold">Calls Done</div>
                     </div>
                 </div>
                 <button onclick="openFollowUpReportModal()" class="w-full mt-3 bg-gray-800 text-white py-2 rounded text-xs font-bold shadow">
-                    <i class="fas fa-file-alt mr-1"></i> View Report
+                    <i class="fas fa-file-alt mr-1"></i> View Operator Report (Director)
                 </button>
             </div>
             <div id="followupListArea" class="space-y-3 pb-10"></div>
@@ -170,62 +155,61 @@
              <button onclick="openSendModal('attendance')" class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold shadow-lg active:scale-95 transition"><i class="fab fa-whatsapp"></i> Send</button>
         </div>
         <div id="marksActions" class="hidden flex gap-2">
-            <button onclick="saveMarks()" class="flex-1 bg-purple-600 text-white py-3 rounded-lg font-bold shadow-lg active:scale-95 transition"><i class="fas fa-save"></i> Save</button>
+            <button onclick="saveMarks()" class="flex-1 bg-purple-600 text-white py-3 rounded-lg font-bold shadow-lg active:scale-95 transition"><i class="fas fa-save"></i> Save Results</button>
             <button onclick="openSendModal('marks')" class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold shadow-lg active:scale-95 transition"><i class="fab fa-whatsapp"></i> Send</button>
         </div>
         <div id="followupActions" class="hidden text-center text-xs text-gray-400 font-bold">
-            Call parents & add remarks.
+            Use buttons above to call parents & add remarks.
         </div>
     </div>
 
     <!-- MODALS -->
-    <!-- Add Batch Modal -->
-    <div id="addBatchModal" class="fixed inset-0 bg-black bg-opacity-90 hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white w-full max-w-sm rounded-xl p-6 shadow-2xl">
-            <h3 class="font-bold text-lg mb-4">Add New Batch</h3>
-            <div class="space-y-3">
-                <input type="text" id="newBatchNameInput" placeholder="Batch Name (e.g. 11th Acc)" class="w-full border p-2 rounded">
-                <label class="block text-xs font-bold text-gray-500">Assign Teacher</label>
-                <select id="newBatchTeacherSelect" class="w-full border p-2 rounded"></select>
-            </div>
-            <div class="mt-6 flex gap-2">
-                <button onclick="closeModal('addBatchModal')" class="flex-1 py-3 text-gray-500 font-bold">Cancel</button>
-                <button onclick="saveNewBatch()" class="flex-1 bg-black text-white rounded-lg font-bold">Create</button>
+    
+    <!-- CALL REMARK MODAL -->
+    <div id="callRemarkModal" class="fixed inset-0 bg-black bg-opacity-90 hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white w-full max-w-sm rounded-xl p-4 shadow-2xl">
+            <h3 class="font-bold text-lg mb-1 text-gray-800">Call Summary</h3>
+            <p class="text-xs text-gray-500 mb-3" id="callingStudentName">Student Name</p>
+            <input type="hidden" id="callStudentId">
+            <input type="hidden" id="callReason">
+            <label class="block text-xs font-bold text-gray-700 mb-1">Parent's Response (Remark)</label>
+            <textarea id="callRemark" rows="3" class="w-full border-2 border-gray-300 p-2 rounded-lg text-sm mb-3 focus:border-blue-500 outline-none" placeholder="Response..."></textarea>
+            <div class="flex gap-2">
+                <button onclick="closeModal('callRemarkModal')" class="flex-1 py-2 text-gray-500 font-bold border rounded">Cancel</button>
+                <button onclick="saveCallRemark()" class="flex-1 bg-green-600 text-white rounded font-bold hover:bg-green-700">Save Remark</button>
             </div>
         </div>
     </div>
 
-    <!-- Settings Modal -->
-    <div id="settingsModal" class="fixed inset-0 bg-black bg-opacity-90 hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white w-full max-w-sm rounded-xl p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
-            <h3 class="text-xl font-bold mb-4">Settings</h3>
-            <div class="bg-yellow-50 p-3 rounded-lg mb-4 border border-yellow-100">
-                <p class="text-xs font-bold text-yellow-800 mb-2">MANAGE TEACHERS</p>
-                <div id="teacherList" class="flex flex-wrap gap-2 mb-2"></div>
-                <div class="flex gap-2">
-                    <input type="text" id="newTeacherName" placeholder="Name" class="flex-1 border p-1 rounded text-sm">
-                    <button onclick="addTeacher()" class="bg-yellow-600 text-white px-3 rounded font-bold text-sm">+</button>
-                </div>
+    <!-- FOLLOW-UP REPORT MODAL -->
+    <div id="followupReportModal" class="fixed inset-0 bg-black bg-opacity-90 hidden flex items-center justify-center z-50 p-2">
+        <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[90vh]">
+            <div class="bg-gray-800 p-4 text-white flex justify-between items-center">
+                <h3 class="font-bold text-lg"><i class="fas fa-clipboard-list mr-2"></i>Operator Report</h3>
+                <button onclick="closeModal('followupReportModal')" class="text-white"><i class="fas fa-times fa-lg"></i></button>
             </div>
-            <div class="bg-indigo-50 p-3 rounded-lg mb-4 border border-indigo-100"><p class="text-xs font-bold text-indigo-800 mb-2">BACKUP</p><button onclick="downloadData()" class="w-full bg-indigo-600 text-white py-2 rounded mb-2 text-sm font-bold">Download Backup</button><input type="file" id="uploadFile" accept="*" class="hidden" onchange="uploadData(this)"><button onclick="document.getElementById('uploadFile').click()" class="w-full border border-indigo-600 text-indigo-600 py-2 rounded text-sm font-bold bg-white">Restore Backup</button></div>
-            <div class="space-y-2"><label class="text-xs font-bold text-gray-600">Voice Note Link</label><input type="text" id="audioLink" class="w-full border p-2 rounded text-sm"><label class="text-xs font-bold text-gray-600">Attendance Template</label><textarea id="msgTemplate" rows="1" class="w-full border p-2 rounded text-xs"></textarea><label class="text-xs font-bold text-gray-600">Marks Template</label><textarea id="marksTemplate" rows="1" class="w-full border p-2 rounded text-xs"></textarea><label class="text-xs font-bold text-gray-600">Absent Template</label><textarea id="absentTemplate" rows="1" class="w-full border p-2 rounded text-xs"></textarea></div>
-            <div class="mt-4 flex gap-2"><button onclick="closeModal('settingsModal')" class="flex-1 py-2 text-gray-500 font-bold">Close</button><button onclick="saveSettings()" class="flex-1 bg-black text-white rounded-lg font-bold">Save</button></div>
+            <div class="flex border-b text-sm font-bold">
+                <button onclick="showReportTab('pending')" id="rtab-pending" class="flex-1 py-3 text-red-600 bg-red-50 border-b-2 border-red-600">Pending</button>
+                <button onclick="showReportTab('completed')" id="rtab-completed" class="flex-1 py-3 text-gray-500">Completed (With Remarks)</button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 bg-gray-50"><div id="reportContent" class="space-y-2"></div></div>
         </div>
     </div>
-    
-    <!-- All Previous Modals (Ranking, Call Remark etc.) -->
-    <div id="callRemarkModal" class="fixed inset-0 bg-black bg-opacity-90 hidden flex items-center justify-center z-50 p-4"><div class="bg-white w-full max-w-sm rounded-xl p-4 shadow-2xl"><h3 class="font-bold text-lg mb-1 text-gray-800">Call Summary</h3><p class="text-xs text-gray-500 mb-3" id="callingStudentName">Student Name</p><input type="hidden" id="callStudentId"><input type="hidden" id="callReason"><label class="block text-xs font-bold text-gray-700 mb-1">Parent's Response (Remark)</label><textarea id="callRemark" rows="3" class="w-full border-2 border-gray-300 p-2 rounded-lg text-sm mb-3 focus:border-blue-500 outline-none" placeholder="Response..."></textarea><div class="flex gap-2"><button onclick="closeModal('callRemarkModal')" class="flex-1 py-2 text-gray-500 font-bold border rounded">Cancel</button><button onclick="saveCallRemark()" class="flex-1 bg-green-600 text-white rounded font-bold hover:bg-green-700">Save Remark</button></div></div></div>
-    <div id="followupReportModal" class="fixed inset-0 bg-black bg-opacity-90 hidden flex items-center justify-center z-50 p-2"><div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[90vh]"><div class="bg-gray-800 p-4 text-white flex justify-between items-center"><h3 class="font-bold text-lg"><i class="fas fa-clipboard-list mr-2"></i>Operator Report</h3><button onclick="closeModal('followupReportModal')" class="text-white"><i class="fas fa-times fa-lg"></i></button></div><div class="flex border-b text-sm font-bold"><button onclick="showReportTab('pending')" id="rtab-pending" class="flex-1 py-3 text-red-600 bg-red-50 border-b-2 border-red-600">Pending</button><button onclick="showReportTab('completed')" id="rtab-completed" class="flex-1 py-3 text-gray-500">Completed (With Remarks)</button></div><div class="flex-1 overflow-y-auto p-4 bg-gray-50"><div id="reportContent" class="space-y-2"></div></div></div></div>
+
+    <!-- Settings Modal (Without Cloud Config - It is hardcoded) -->
+    <div id="settingsModal" class="fixed inset-0 bg-black bg-opacity-90 hidden flex items-center justify-center z-50 p-4"><div class="bg-white w-full max-w-sm rounded-xl p-6 shadow-2xl overflow-y-auto max-h-[90vh]"><h3 class="text-xl font-bold mb-4">Settings</h3><div class="bg-indigo-50 p-3 rounded-lg mb-4 border border-indigo-100"><button onclick="downloadData()" class="w-full bg-indigo-600 text-white py-2 rounded mb-2 text-sm font-bold">Download Backup</button><input type="file" id="uploadFile" accept="*" class="hidden" onchange="uploadData(this)"><button onclick="document.getElementById('uploadFile').click()" class="w-full border border-indigo-600 text-indigo-600 py-2 rounded text-sm font-bold bg-white">Restore Backup (Manual)</button></div><div class="mt-6 flex gap-2"><button onclick="closeModal('settingsModal')" class="flex-1 py-3 text-gray-500 font-bold">Close</button><button onclick="saveSettings()" class="flex-1 bg-black text-white rounded-lg font-bold">Save</button></div></div></div>
+
+    <!-- Other Modals (Same as before) -->
     <div id="sendModal" class="fixed inset-0 bg-black bg-opacity-90 hidden flex items-center justify-center z-50 p-4"><div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"><div id="sendHeader" class="bg-[#128C7E] p-4 text-white flex justify-between items-center"><h3 class="font-bold">Send Messages</h3><button onclick="closeModal('sendModal')" class="text-white"><i class="fas fa-times"></i></button></div><div class="p-3 bg-gray-50 text-xs text-gray-500 text-center border-b">Tip: Use two thumbs for speed sending.</div><div id="sendingList" class="flex-1 overflow-y-auto p-4 space-y-3"></div></div></div>
+    <div id="monthlyModal" class="fixed inset-0 bg-black bg-opacity-90 hidden flex items-center justify-center z-50 p-2"><div class="bg-white w-full max-w-6xl rounded-xl shadow-2xl overflow-hidden h-[90vh] flex flex-col"><div class="bg-purple-700 p-3 text-white flex justify-between items-center"><h3 class="font-bold text-sm"><i class="fas fa-calendar-alt mr-2"></i>Monthly Attendance</h3><button onclick="closeModal('monthlyModal')" class="text-white"><i class="fas fa-times fa-lg"></i></button></div><div class="p-3 bg-gray-100 flex gap-2 items-center flex-wrap"><input type="month" id="reportMonth" class="p-2 border rounded font-bold text-sm flex-1" onchange="loadMonthlyData()"><select id="reportBatch" class="p-2 border rounded font-bold text-sm flex-[2]" onchange="loadMonthlyData()"></select><button onclick="printMonthlyReport()" class="bg-gray-800 text-white px-3 py-2 rounded font-bold text-sm shadow hover:bg-gray-700"><i class="fas fa-print mr-1"></i> Print</button></div><div class="flex-1 overflow-auto p-2 bg-white"><div id="monthlyGrid" class="min-w-max"></div></div></div></div>
+    <div id="historyModal" class="fixed inset-0 bg-black bg-opacity-90 hidden flex items-center justify-center z-50 p-4"><div class="bg-white w-full max-w-4xl rounded-xl shadow-2xl overflow-hidden h-[85vh] flex flex-col"><div class="bg-blue-600 p-4 text-white flex justify-between items-center"><h3 class="font-bold text-lg"><i class="fas fa-history mr-2"></i>Logs & Reports</h3><button onclick="closeModal('historyModal')" class="text-white"><i class="fas fa-times fa-lg"></i></button></div><div class="bg-blue-50 p-4 border-b border-blue-100"><p class="text-xs font-bold text-blue-800 mb-2 uppercase">Download Excel Report</p><div class="flex gap-2 mb-2"><div class="flex-1"><label class="text-[10px] text-gray-500">From</label><input type="date" id="exportStart" class="w-full p-2 border rounded text-sm"></div><div class="flex-1"><label class="text-[10px] text-gray-500">To</label><input type="date" id="exportEnd" class="w-full p-2 border rounded text-sm"></div></div><div class="flex gap-2"><select id="historyBatch" class="flex-[2] p-2 border rounded text-sm" onchange="loadHistoryData()"></select><button onclick="exportHistoryCSV()" class="flex-1 bg-green-600 text-white px-2 py-2 rounded font-bold text-sm shadow"><i class="fas fa-file-excel"></i> Download</button></div></div><div class="p-3 bg-gray-100 border-b flex justify-between items-center"><span class="text-xs font-bold text-gray-600">VIEW SINGLE DAY:</span><input type="date" id="historyDate" class="p-1 border rounded text-sm" onchange="loadHistoryData()"></div><div class="flex-1 overflow-y-auto p-4"><table class="w-full border-collapse text-sm"><thead><tr class="bg-gray-200 text-gray-700"><th class="p-2 text-left">Name</th><th class="p-2 text-center">Status</th><th class="p-2 text-right">Mobile</th></tr></thead><tbody id="historyTableBody"></tbody></table><div id="noHistoryMsg" class="text-center text-gray-400 mt-10">No record found for selected date.</div></div></div></div>
+    <div id="rankingModal" class="fixed inset-0 bg-black bg-opacity-90 hidden flex items-center justify-center z-50 p-2"><div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[90vh]"><div class="bg-gradient-to-r from-orange-500 to-red-500 p-4 text-white flex justify-between items-center"><h3 class="font-bold text-lg"><i class="fas fa-chart-line mr-2"></i>Result Analysis</h3><button onclick="closeModal('rankingModal')" class="text-white bg-white/20 rounded-full p-1 w-8 h-8"><i class="fas fa-times"></i></button></div><div class="p-3 bg-orange-50 border-b border-orange-100 flex flex-col gap-2"><select id="rankingTestSelect" onchange="renderRankingList()" class="w-full p-2 border rounded font-bold text-sm text-gray-800"><option value="-1">📊 All Tests (Overall Average)</option></select><div class="flex justify-between items-center"><span class="text-xs text-orange-700 font-bold" id="rankSubtitle">Select a test to view details</span><div class="flex gap-2"><button onclick="printRanking()" class="bg-gray-800 text-white px-3 py-1.5 rounded text-xs font-bold shadow hover:bg-gray-700"><i class="fas fa-print mr-1"></i> Print List</button><button onclick="downloadRankingCSV()" class="bg-green-600 text-white px-3 py-1.5 rounded text-xs font-bold shadow hover:bg-green-700"><i class="fas fa-download mr-1"></i> Excel</button></div></div></div><div class="flex-1 overflow-y-auto p-2 md:p-4 bg-gray-50" id="rankingPrintArea"><div id="rankingList" class="space-y-2"></div></div></div></div>
+    <div id="manageTestsModal" class="fixed inset-0 bg-black bg-opacity-90 hidden flex items-center justify-center z-50 p-2"><div class="bg-white w-full max-w-md rounded-xl shadow-2xl overflow-hidden flex flex-col h-[85vh]"><div class="bg-blue-800 p-4 text-white flex justify-between items-center"><h3 class="font-bold text-lg"><i class="fas fa-edit mr-2"></i>Edit Past Tests</h3><button onclick="closeModal('manageTestsModal')" class="text-white bg-white/20 rounded-full p-1 w-8 h-8"><i class="fas fa-times"></i></button></div><div class="p-3 bg-blue-50 text-xs text-blue-800 text-center border-b">Click "Edit" to modify marks or fix errors.</div><div class="flex-1 overflow-y-auto p-4 bg-gray-50"><div id="pastTestsList" class="space-y-3"></div></div></div></div>
+    <div id="editTestMarksModal" class="fixed inset-0 bg-black bg-opacity-95 hidden flex items-center justify-center z-50 p-2"><div class="bg-white w-full max-w-md rounded-xl shadow-2xl overflow-hidden flex flex-col h-[90vh]"><div class="bg-purple-700 p-3 text-white flex justify-between items-center"><h3 class="font-bold">Correct Marks</h3><button onclick="closeModal('editTestMarksModal')" class="text-white"><i class="fas fa-times"></i></button></div><div class="p-3 bg-purple-50 border-b space-y-2"><input type="hidden" id="editingTestIndex"><div class="flex gap-2"><input type="date" id="editTestDate" class="border p-2 rounded text-sm font-bold flex-1"><input type="tel" id="editTestMax" class="border p-2 rounded text-sm w-20 text-center" placeholder="Max"></div><input type="text" id="editTestName" class="w-full border p-2 rounded text-sm font-bold"></div><div class="flex-1 overflow-y-auto p-3" id="editMarksList"></div><div class="p-3 border-t bg-white"><button onclick="updateTestMarks()" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold shadow">Update & Save Changes</button></div></div></div>
+    <div id="studentProfileModal" class="fixed inset-0 bg-black bg-opacity-90 hidden flex items-center justify-center z-50 p-2"><div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[85vh]"><div class="bg-blue-800 p-4 text-white flex justify-between items-center"><h3 class="font-bold text-lg"><i class="fas fa-chart-bar mr-2"></i>Student Performance</h3><button onclick="closeModal('studentProfileModal')" class="text-white bg-white/20 rounded-full p-1 w-8 h-8"><i class="fas fa-times"></i></button></div><div id="profileContent" class="flex-1 overflow-y-auto p-4 bg-gray-50"></div><div class="p-4 bg-white border-t"><button id="sendProfileReportBtn" class="w-full bg-green-600 text-white py-3 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2"><i class="fab fa-whatsapp"></i> Send Full Report to Parent</button></div></div></div>
     <div id="addStudentModal" class="fixed inset-0 bg-black bg-opacity-90 hidden flex items-center justify-center z-50 p-4"><div class="bg-white w-full max-w-sm rounded-xl p-4 shadow-2xl"><h3 class="font-bold text-lg mb-4">Add New Student</h3><div class="space-y-3"><input type="text" id="addName" placeholder="Student Name" class="w-full border p-2 rounded"><input type="tel" id="addFather" placeholder="Father No (91...)" class="w-full border p-2 rounded"><input type="tel" id="addMother" placeholder="Mother No (91...)" class="w-full border p-2 rounded"></div><div class="mt-6 flex gap-2"><button onclick="closeModal('addStudentModal')" class="flex-1 py-3 text-gray-500 font-bold">Cancel</button><button onclick="addStudentFromModal()" class="flex-1 bg-black text-white rounded-lg font-bold">Add</button></div></div></div>
     <div id="editModal" class="fixed inset-0 bg-black bg-opacity-90 hidden flex items-center justify-center z-50 p-4"><div class="bg-white w-full max-w-sm rounded-xl p-4 shadow-2xl"><h3 class="font-bold text-lg mb-4">Edit Student</h3><input type="hidden" id="editId"><div class="space-y-3"><label class="text-xs font-bold text-gray-500">Name</label><input type="text" id="editName" class="w-full border p-2 rounded"><label class="text-xs font-bold text-gray-500">Father Mobile</label><input type="tel" id="editFather" class="w-full border p-2 rounded"><label class="text-xs font-bold text-gray-500">Mother Mobile</label><input type="tel" id="editMother" class="w-full border p-2 rounded"></div><div class="mt-6 flex gap-2"><button onclick="closeModal('editModal')" class="flex-1 py-3 text-gray-500 font-bold">Cancel</button><button onclick="saveStudentEdit()" class="flex-1 bg-blue-600 text-white rounded-lg font-bold">Save</button></div></div></div>
     <div id="leftStudentsModal" class="fixed inset-0 bg-black bg-opacity-90 hidden flex items-center justify-center z-50 p-4"><div class="bg-white w-full max-w-md rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"><div class="bg-gray-800 p-4 text-white flex justify-between items-center"><h3 class="font-bold">Removed Students</h3><button onclick="closeModal('leftStudentsModal')" class="text-white"><i class="fas fa-times"></i></button></div><div class="flex-1 overflow-y-auto p-4"><table class="w-full text-left text-sm"><tbody id="leftStudentsList"></tbody></table><div id="noLeftStudentsMsg" class="text-center text-gray-400 mt-5 hidden">List empty.</div></div></div></div>
-    <div id="rankingModal" class="fixed inset-0 bg-black bg-opacity-90 hidden flex items-center justify-center z-50 p-2"><div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[90vh]"><div class="bg-gradient-to-r from-orange-500 to-red-500 p-4 text-white flex justify-between items-center"><h3 class="font-bold text-lg"><i class="fas fa-chart-line mr-2"></i>Result Analysis</h3><button onclick="closeModal('rankingModal')" class="text-white bg-white/20 rounded-full p-1 w-8 h-8"><i class="fas fa-times"></i></button></div><div class="p-3 bg-orange-50 border-b border-orange-100 flex flex-col gap-2"><select id="rankingTestSelect" onchange="renderRankingList()" class="w-full p-2 border rounded font-bold text-sm text-gray-800"><option value="-1">📊 All Tests (Overall Average)</option></select><div class="flex justify-between items-center"><span class="text-xs text-orange-700 font-bold" id="rankSubtitle">Select a test to view details</span><div class="flex gap-2"><button onclick="printRanking()" class="bg-gray-800 text-white px-3 py-1.5 rounded text-xs font-bold shadow hover:bg-gray-700"><i class="fas fa-print mr-1"></i> Print List</button><button onclick="downloadRankingCSV()" class="bg-green-600 text-white px-3 py-1.5 rounded text-xs font-bold shadow hover:bg-green-700"><i class="fas fa-download mr-1"></i> Excel</button></div></div></div><div class="flex-1 overflow-y-auto p-2 md:p-4 bg-gray-50" id="rankingPrintArea"><div id="rankingList" class="space-y-2"></div></div></div></div>
-    <div id="manageTestsModal" class="fixed inset-0 bg-black bg-opacity-90 hidden flex items-center justify-center z-50 p-2"><div class="bg-white w-full max-w-md rounded-xl shadow-2xl overflow-hidden flex flex-col h-[85vh]"><div class="bg-blue-800 p-4 text-white flex justify-between items-center"><h3 class="font-bold text-lg"><i class="fas fa-edit mr-2"></i>Edit Past Tests</h3><button onclick="closeModal('manageTestsModal')" class="text-white bg-white/20 rounded-full p-1 w-8 h-8"><i class="fas fa-times"></i></button></div><div class="p-3 bg-blue-50 text-xs text-blue-800 text-center border-b">Click "Edit" to modify marks or fix errors.</div><div class="flex-1 overflow-y-auto p-4 bg-gray-50"><div id="pastTestsList" class="space-y-3"></div></div></div></div>
-    <div id="editTestMarksModal" class="fixed inset-0 bg-black bg-opacity-95 hidden flex items-center justify-center z-50 p-2"><div class="bg-white w-full max-w-md rounded-xl shadow-2xl overflow-hidden flex flex-col h-[85vh]"><div class="bg-purple-700 p-3 text-white flex justify-between items-center"><h3 class="font-bold">Correct Marks</h3><button onclick="closeModal('editTestMarksModal')" class="text-white"><i class="fas fa-times"></i></button></div><div class="p-3 bg-purple-50 border-b space-y-2"><input type="hidden" id="editingTestIndex"><div class="flex gap-2"><input type="date" id="editTestDate" class="border p-2 rounded text-sm font-bold flex-1"><input type="tel" id="editTestMax" class="border p-2 rounded text-sm w-20 text-center" placeholder="Max"></div><input type="text" id="editTestName" class="w-full border p-2 rounded text-sm font-bold"></div><div class="flex-1 overflow-y-auto p-3" id="editMarksList"></div><div class="p-3 border-t bg-white"><button onclick="updateTestMarks()" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold shadow">Update & Save Changes</button></div></div></div>
-    <div id="studentProfileModal" class="fixed inset-0 bg-black bg-opacity-90 hidden flex items-center justify-center z-50 p-2"><div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[85vh]"><div class="bg-blue-800 p-4 text-white flex justify-between items-center"><h3 class="font-bold text-lg"><i class="fas fa-chart-bar mr-2"></i>Student Performance</h3><button onclick="closeModal('studentProfileModal')" class="text-white bg-white/20 rounded-full p-1 w-8 h-8"><i class="fas fa-times"></i></button></div><div id="profileContent" class="flex-1 overflow-y-auto p-4 bg-gray-50"></div><div class="p-4 bg-white border-t"><button id="sendProfileReportBtn" class="w-full bg-green-600 text-white py-3 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2"><i class="fab fa-whatsapp"></i> Send Full Report to Parent</button></div></div></div>
-    <div id="monthlyModal" class="fixed inset-0 bg-black bg-opacity-90 hidden flex items-center justify-center z-50 p-2"><div class="bg-white w-full max-w-6xl rounded-xl shadow-2xl overflow-hidden h-[90vh] flex flex-col"><div class="bg-purple-700 p-3 text-white flex justify-between items-center"><h3 class="font-bold text-sm"><i class="fas fa-calendar-alt mr-2"></i>Monthly Attendance</h3><button onclick="closeModal('monthlyModal')" class="text-white"><i class="fas fa-times fa-lg"></i></button></div><div class="p-3 bg-gray-100 flex gap-2 items-center flex-wrap"><input type="month" id="reportMonth" class="p-2 border rounded font-bold text-sm flex-1" onchange="loadMonthlyData()"><select id="reportBatch" class="p-2 border rounded font-bold text-sm flex-[2]" onchange="loadMonthlyData()"></select><button onclick="printMonthlyReport()" class="bg-gray-800 text-white px-3 py-2 rounded font-bold text-sm shadow hover:bg-gray-700"><i class="fas fa-print mr-1"></i> Print</button></div><div class="flex-1 overflow-auto p-2 bg-white"><div id="monthlyGrid" class="min-w-max"></div></div></div></div>
-    <div id="historyModal" class="fixed inset-0 bg-black bg-opacity-90 hidden flex items-center justify-center z-50 p-4"><div class="bg-white w-full max-w-4xl rounded-xl shadow-2xl overflow-hidden h-[85vh] flex flex-col"><div class="bg-blue-600 p-4 text-white flex justify-between items-center"><h3 class="font-bold text-lg"><i class="fas fa-history mr-2"></i>Logs & Reports</h3><button onclick="closeModal('historyModal')" class="text-white"><i class="fas fa-times fa-lg"></i></button></div><div class="bg-blue-50 p-4 border-b border-blue-100"><p class="text-xs font-bold text-blue-800 mb-2 uppercase">Download Excel Report</p><div class="flex gap-2 mb-2"><div class="flex-1"><label class="text-[10px] text-gray-500">From</label><input type="date" id="exportStart" class="w-full p-2 border rounded text-sm"></div><div class="flex-1"><label class="text-[10px] text-gray-500">To</label><input type="date" id="exportEnd" class="w-full p-2 border rounded text-sm"></div></div><div class="flex gap-2"><select id="historyBatch" class="flex-[2] p-2 border rounded text-sm" onchange="loadHistoryData()"></select><button onclick="exportHistoryCSV()" class="flex-1 bg-green-600 text-white px-2 py-2 rounded font-bold text-sm shadow"><i class="fas fa-file-excel"></i> Download</button></div></div><div class="p-3 bg-gray-100 border-b flex justify-between items-center"><span class="text-xs font-bold text-gray-600">VIEW SINGLE DAY:</span><input type="date" id="historyDate" class="p-1 border rounded text-sm" onchange="loadHistoryData()"></div><div class="flex-1 overflow-y-auto p-4"><table class="w-full border-collapse text-sm"><thead><tr class="bg-gray-200 text-gray-700"><th class="p-2 text-left">Name</th><th class="p-2 text-center">Status</th><th class="p-2 text-right">Mobile</th></tr></thead><tbody id="historyTableBody"></tbody></table><div id="noHistoryMsg" class="text-center text-gray-400 mt-10">No record found for selected date.</div></div></div></div>
 
     <script>
         // --- HARDCODED FIREBASE CONFIGURATION ---
@@ -236,13 +220,12 @@
             storageBucket: "bcc-mannager-1.appspot.com"
         };
 
+        // --- 1. CONFIG & INIT ---
         let db = null;
         let useCloud = false;
-        let selectedTeacher = "All"; // Default: Director sees all
         
         let data = {
-            teachers: [], 
-            batches: [], 
+            batches: ["12th Maths"],
             students: [], 
             history: [], 
             marksHistory: [], 
@@ -256,171 +239,271 @@
         };
 
         function init() {
+            // Auto Connect Cloud on Load
             if (!firebase.apps.length) {
-                try { firebase.initializeApp(firebaseConfig); db = firebase.firestore(); useCloud = true; connectToCloud(); } 
-                catch (e) { document.getElementById('syncStatus').innerText = "Offline"; showOfflineMode(); }
+                try {
+                    firebase.initializeApp(firebaseConfig);
+                    db = firebase.firestore();
+                    useCloud = true;
+                    connectToCloud();
+                } catch (e) {
+                    console.error("Firebase Init Error:", e);
+                    document.getElementById('syncStatus').innerText = "Offline (Config Error)";
+                }
             }
-            if(!data.teachers) data.teachers = [];
-            
+
+            if(!data.followUps) data.followUps = []; 
+            renderBatches();
             document.getElementById('currentDateDisplay').innerText = new Date().toLocaleDateString('en-IN');
             document.getElementById('testDateInput').value = new Date().toISOString().split('T')[0];
         }
 
-        // --- FIREBASE ---
+        // --- FIREBASE LOGIC ---
         function connectToCloud() {
             const statusEl = document.getElementById('syncStatus');
             statusEl.innerText = "Connecting...";
-            db.collection("bcc_data").doc("main_record").onSnapshot((doc) => {
-                if (doc.exists) {
-                    const cloudData = doc.data();
-                    if(cloudData.batches.length > 0 && typeof cloudData.batches[0] === 'string') {
-                        cloudData.batches = cloudData.batches.map(b => ({ name: b, teacher: "All" }));
+            statusEl.className = "status-offline";
+            
+            db.collection("bcc_data").doc("main_record")
+                .onSnapshot((doc) => {
+                    if (doc.exists) {
+                        data = doc.data(); 
+                        if(!data.followUps) data.followUps = []; 
+                        statusEl.innerText = "Online 🟢";
+                        statusEl.className = "status-live";
+                        refreshUI();
+                    } else {
+                        saveData(true); 
                     }
-                    data = cloudData;
-                    if(!data.teachers) data.teachers = [];
-                    statusEl.innerText = "Online 🟢";
-                    statusEl.className = "status-live";
-                    refreshUI();
-                } else { saveData(true); }
-            }, (err) => { statusEl.innerText = "Offline 🔴"; loadLocalData(); });
+                }, (error) => {
+                    statusEl.innerText = "Offline 🔴";
+                    loadLocalData();
+                });
         }
 
-        function saveData() {
+        function saveData(force = false) {
             if (useCloud && db) {
                 db.collection("bcc_data").doc("main_record").set(data)
-                    .then(() => document.getElementById('syncStatus').innerText = "Online 🟢")
-                    .catch(() => saveLocalData());
-            } else saveLocalData();
-        }
-        function saveLocalData() { localStorage.setItem('bcc_data_v10', JSON.stringify(data)); document.getElementById('syncStatus').innerText = "Offline"; }
-        function loadLocalData() { const l = JSON.parse(localStorage.getItem('bcc_data_v10')); if(l) { data = l; if(!data.teachers) data.teachers=[]; refreshUI(); } }
-
-        // --- TEACHER & BATCH LOGIC ---
-        function refreshUI() {
-            renderTeacherDropdown();
-            renderBatches();
-            loadSettingsSafe(); 
-            loadMainList();
+                    .then(() => {
+                        document.getElementById('syncStatus').innerText = "Online 🟢";
+                        localStorage.setItem('bcc_data_v10', JSON.stringify(data)); 
+                    })
+                    .catch((err) => {
+                        saveLocalData();
+                    });
+            } else {
+                saveLocalData();
+            }
         }
 
-        function loadSettingsSafe() {
-            const elAudio = document.getElementById('audioLink');
-            const elMsg = document.getElementById('msgTemplate');
-            const elMarks = document.getElementById('marksTemplate');
-            const elAbsent = document.getElementById('absentTemplate');
+        function saveLocalData() {
+            localStorage.setItem('bcc_data_v10', JSON.stringify(data));
+            document.getElementById('syncStatus').innerText = "Offline";
+        }
+        function loadLocalData() {
+            const local = JSON.parse(localStorage.getItem('bcc_data_v10'));
+            if(local) { data = local; refreshUI(); }
+        }
+
+        // --- UI LOGIC ---
+        let currentTab = 'attendance';
+        let selectedAbsent = [];
+        let currentMarks = {}; 
+        const todayStr = new Date().toISOString().split('T')[0];
+        let currentFollowUpStudent = null;
+        let editingTestIndex = -1; 
+
+        function refreshUI() { renderBatches(); loadMainList(); }
+        
+        function switchTab(tab) { 
+            currentTab = tab; 
+            document.querySelectorAll('button[id^="tab-"]').forEach(b => {
+                b.className = b.id === `tab-${tab}` 
+                    ? `flex-1 py-3 tab-active ${tab==='followup'?'text-red-600':''}` 
+                    : `flex-1 py-3 tab-inactive ${tab==='followup'?'text-red-600':''}`;
+            });
+
+            ['attendanceControls', 'marksControls', 'followupControls', 'attendanceActions', 'marksActions', 'followupActions', 'mainList'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+
+            if (tab === 'attendance') {
+                document.getElementById('attendanceControls').classList.remove('hidden');
+                document.getElementById('attendanceActions').classList.remove('hidden');
+                document.getElementById('mainList').classList.remove('hidden');
+            } else if (tab === 'marks') {
+                document.getElementById('marksControls').classList.remove('hidden');
+                document.getElementById('marksActions').classList.remove('hidden');
+                document.getElementById('mainList').classList.remove('hidden');
+            } else if (tab === 'followup') {
+                document.getElementById('followupControls').classList.remove('hidden');
+                document.getElementById('followupActions').classList.remove('hidden');
+                generateFollowUpList();
+            }
+            if(tab !== 'followup') loadMainList();
+        }
+
+        // --- FOLLOW UP LOGIC (NEW) ---
+        function generateFollowUpList() {
+            const listArea = document.getElementById('followupListArea');
+            listArea.innerHTML = '';
             
-            if(elAudio) elAudio.value = data.settings.audioUrl || "";
-            if(elMsg) elMsg.value = data.settings.template;
-            if(elMarks) elMarks.value = data.settings.marksTemplate;
-            if(elAbsent) elAbsent.value = data.settings.absentTemplate;
-        }
+            const today = new Date();
+            const currentMonthPrefix = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
+            let pendingCount = 0;
+            let completedCount = 0;
+            let defaulters = [];
+            let weakStudents = [];
 
-        function renderTeacherDropdown() {
-            const select = document.getElementById('teacherFilter');
-            const currentVal = select.value;
-            let html = '<option value="All">👑 Director (All)</option>';
-            data.teachers.forEach(t => { html += `<option value="${t}">${t}</option>`; });
-            select.innerHTML = html;
-            if(currentVal && (currentVal === 'All' || data.teachers.includes(currentVal))) { select.value = currentVal; }
-            const tList = document.getElementById('teacherList');
-            if(tList) { 
-                // Updated with renderTeacherList() call on removal
-                tList.innerHTML = data.teachers.map(t => `<span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded border border-yellow-200">${t} <button onclick="removeTeacher('${t}')" class="ml-1 text-red-500 font-bold">x</button></span>`).join(''); 
-            }
-        }
+            if(!data.students) return;
 
-        function handleTeacherChange() {
-            selectedTeacher = document.getElementById('teacherFilter').value;
-            document.getElementById('followUpTeacherLabel').innerText = selectedTeacher === 'All' ? "All Teachers" : selectedTeacher;
-            renderBatches();
-            if(currentTab === 'followup') generateFollowUpList();
-            else loadMainList();
-        }
+            data.students.forEach(s => {
+                if(s.active === false) return;
+                
+                // 1. Attendance Check (>= 2 Leaves in month)
+                let absCount = 0;
+                data.history.forEach(h => {
+                    if(h.date.startsWith(currentMonthPrefix) && h.absentIds.includes(s.id)) absCount++;
+                });
+                if(absCount >= 2) defaulters.push({ ...s, reason: `Attendance (${absCount} absents)`, type: 'Attendance' });
 
-        function addTeacher() {
-            const name = document.getElementById('newTeacherName').value.trim();
-            if(name && !data.teachers.includes(name)) {
-                data.teachers.push(name);
-                saveData();
-                renderTeacherDropdown();
-                renderBatches(); 
-                populateModalTeacherList();
-                document.getElementById('newTeacherName').value = '';
-            }
-        }
-
-        function removeTeacher(name) {
-            if(confirm("Remove this teacher?")) {
-                data.teachers = data.teachers.filter(t => t !== name);
-                saveData();
-                renderTeacherDropdown(); // This updates the main dropdown & list
-                renderBatches();
-            }
-        }
-
-        function renderBatches() {
-            const normalizedBatches = data.batches.map(b => (typeof b === 'string') ? { name: b, teacher: "All" } : b);
-            const filteredBatches = normalizedBatches.filter(b => selectedTeacher === 'All' || b.teacher === selectedTeacher || b.teacher === 'All');
-            const html = filteredBatches.map(b => `<option value="${b.name}">${b.name}</option>`).join('');
-            
-            ['batchSelect', 'marksBatchSelect', 'reportBatch', 'historyBatch'].forEach(id => {
-                const el = document.getElementById(id);
-                if(el) {
-                    el.innerHTML = html;
-                    if(filteredBatches.length > 0 && (!el.value || !filteredBatches.find(b => b.name === el.value))) {
-                        el.value = filteredBatches[0].name;
+                // 2. Marks Check (< 50% in last test)
+                const batchTests = data.marksHistory.filter(t => t.batch === s.batch).sort((a,b) => new Date(b.date) - new Date(a.date));
+                if(batchTests.length > 0) {
+                    const lastTest = batchTests[0];
+                    if(lastTest.results && lastTest.results[s.id]) {
+                        const m = parseFloat(lastTest.results[s.id]);
+                        const max = parseFloat(lastTest.maxMarks);
+                        if(!isNaN(m) && (m/max) < 0.5) {
+                            weakStudents.push({ ...s, reason: `Low Marks: ${m}/${max} in ${lastTest.title}`, type: 'Marks' });
+                        }
                     }
                 }
             });
+
+            // Render Function
+            const renderRow = (s) => {
+                const followUp = data.followUps.find(f => f.studentId === s.id && f.date === todayStr && f.reason === s.type);
+                const isDone = followUp && followUp.status === 'Done';
+                if(isDone) completedCount++; else pendingCount++;
+
+                return `
+                    <div class="bg-white p-3 rounded-lg shadow border-l-4 ${s.type==='Attendance'?'border-red-500':'border-yellow-500'} relative">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-bold text-gray-800 text-sm">${s.name} <span class="text-xs text-gray-400">(${s.batch})</span></h4>
+                                <p class="text-xs font-bold ${isDone ? 'text-green-600' : 'text-red-600'}">${s.reason}</p>
+                                ${isDone ? `<p class="text-xs text-gray-600 mt-1 italic"><i class="fas fa-comment-dots"></i> "${followUp.remark}"</p>` : ''}
+                            </div>
+                            <div class="flex flex-col gap-1 w-24">
+                                ${!isDone ? `
+                                    ${s.father ? `<a href="tel:${s.father}" onclick="openRemarkModal(${s.id}, '${s.type}', '${s.name}', '${s.reason}')" class="bg-blue-100 text-blue-700 py-1 rounded text-xs font-bold text-center border border-blue-200">Call Father</a>` : ''}
+                                    ${s.mother ? `<a href="tel:${s.mother}" onclick="openRemarkModal(${s.id}, '${s.type}', '${s.name}', '${s.reason}')" class="bg-pink-100 text-pink-700 py-1 rounded text-xs font-bold text-center border border-pink-200">Call Mother</a>` : ''}
+                                ` : `<span class="text-green-600 font-bold text-xs text-right"><i class="fas fa-check-circle"></i> Done</span>`}
+                            </div>
+                        </div>
+                    </div>`;
+            };
+
+            let html = '';
+            if(defaulters.length > 0) {
+                html += `<h4 class="font-bold text-gray-500 text-xs uppercase mb-2 mt-1">Attendance Risk (2+ Leaves)</h4>`;
+                defaulters.forEach(s => html += renderRow(s));
+            }
+            if(weakStudents.length > 0) {
+                html += `<h4 class="font-bold text-gray-500 text-xs uppercase mb-2 mt-4">Performance Alert (<50%)</h4>`;
+                weakStudents.forEach(s => html += renderRow(s));
+            }
+            if(defaulters.length === 0 && weakStudents.length === 0) html = `<div class="text-center text-gray-400 p-10">No alerts today!</div>`;
+
+            listArea.innerHTML = html;
+            document.getElementById('pendingCallsCount').innerText = pendingCount;
+            document.getElementById('completedCallsCount').innerText = completedCount;
         }
-        
-        function populateModalTeacherList() {
-            const modalSelect = document.getElementById('newBatchTeacherSelect');
-            if(modalSelect) {
-                let opts = '<option value="All">All (Director)</option>';
-                data.teachers.forEach(t => opts += `<option value="${t}">${t}</option>`);
-                modalSelect.innerHTML = opts;
-                if(selectedTeacher !== 'All') modalSelect.value = selectedTeacher;
+
+        function openRemarkModal(id, type, name, reason) {
+            currentFollowUpStudent = { id, type, name, reason };
+            document.getElementById('callingStudentName').innerText = `Calling parent of: ${name}`;
+            document.getElementById('callRemark').value = ''; 
+            
+            // Check existing
+            const existing = data.followUps.find(f => f.studentId === id && f.date === todayStr && f.reason === type);
+            if(existing) document.getElementById('callRemark').value = existing.remark;
+
+            setTimeout(() => {
+                document.getElementById('callRemarkModal').classList.remove('hidden');
+            }, 1000);
+        }
+
+        function saveCallRemark() {
+            const remark = document.getElementById('callRemark').value;
+            if(!remark) return alert("Enter a remark");
+            
+            const { id, type } = currentFollowUpStudent;
+            // Remove old
+            data.followUps = data.followUps.filter(f => !(f.studentId === id && f.date === todayStr && f.reason === type));
+            // Add new
+            data.followUps.push({
+                studentId: id,
+                date: todayStr,
+                reason: type,
+                remark: remark,
+                status: 'Done'
+            });
+            saveData();
+            closeModal('callRemarkModal');
+            generateFollowUpList();
+        }
+
+        // --- REPORTING LOGIC ---
+        function openFollowUpReportModal() {
+            document.getElementById('followupReportModal').classList.remove('hidden');
+            showReportTab('pending');
+        }
+
+        function showReportTab(type) {
+            const content = document.getElementById('reportContent');
+            content.innerHTML = '';
+            document.getElementById('rtab-pending').className = type==='pending' ? "flex-1 py-3 text-red-600 bg-red-50 border-b-2 border-red-600" : "flex-1 py-3 text-gray-500";
+            document.getElementById('rtab-completed').className = type==='completed' ? "flex-1 py-3 text-green-600 bg-green-50 border-b-2 border-green-600" : "flex-1 py-3 text-gray-500";
+
+            const today = new Date();
+            const currentMonthPrefix = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
+            
+            if(type === 'pending') {
+                let list = [];
+                data.students.forEach(s => {
+                    if(s.active===false) return;
+                    let abs=0; data.history.forEach(h=>{if(h.date.startsWith(currentMonthPrefix) && h.absentIds.includes(s.id)) abs++;});
+                    if(abs>=2 && !data.followUps.some(f=>f.studentId===s.id && f.date===todayStr && f.reason==='Attendance')) list.push({...s, issue: `Attendance (${abs})`});
+                    
+                    const batchTests = data.marksHistory.filter(t => t.batch === s.batch).sort((a,b) => new Date(b.date) - new Date(a.date));
+                    if(batchTests.length > 0) {
+                        const last = batchTests[0];
+                        if(last.results[s.id] && (parseFloat(last.results[s.id])/last.maxMarks < 0.5) && !data.followUps.some(f=>f.studentId===s.id && f.date===todayStr && f.reason==='Marks')) {
+                            list.push({...s, issue: `Low Marks`});
+                        }
+                    }
+                });
+                if(list.length===0) content.innerHTML='<div class="text-center p-5 text-gray-400">Nothing pending.</div>';
+                else list.forEach(s => content.innerHTML+=`<div class="p-3 border-b flex justify-between"><span class="font-bold">${s.name} <span class="text-xs text-gray-400">(${s.batch})</span></span><span class="text-red-500 text-xs">${s.issue}</span></div>`);
+            } else {
+                const completed = data.followUps.filter(f => f.date === todayStr);
+                if(completed.length===0) content.innerHTML='<div class="text-center p-5 text-gray-400">No calls made yet.</div>';
+                else completed.forEach(f => {
+                    const s = data.students.find(x => x.id === f.studentId);
+                    if(s) content.innerHTML += `<div class="p-3 border-b bg-white"><div class="flex justify-between"><span class="font-bold text-gray-800">${s.name}</span><span class="text-xs bg-gray-100 px-2 rounded">${f.reason}</span></div><div class="text-sm text-green-700 mt-1 italic">"${f.remark}"</div></div>`;
+                });
             }
         }
 
-        function openAddBatchModal() { 
-            populateModalTeacherList(); // Call immediately before showing
-            document.getElementById('addBatchModal').classList.remove('hidden'); 
-        }
-        
-        function saveNewBatch() {
-            const name = document.getElementById('newBatchNameInput').value.trim();
-            const teacher = document.getElementById('newBatchTeacherSelect').value;
-            const batchNames = data.batches.map(b => (typeof b === 'string') ? b : b.name);
-            if(name) {
-                if(batchNames.includes(name)) return alert("Batch name exists!");
-                data.batches.push({ name: name, teacher: teacher });
-                saveData();
-                renderBatches();
-                closeModal('addBatchModal');
-                document.getElementById('newBatchNameInput').value = '';
-                loadMainList();
-            }
-        }
-
-        // --- EXISTING LOGIC ---
-        let currentTab='attendance', selectedAbsent=[], currentMarks={}, todayStr=new Date().toISOString().split('T')[0];
-
-        function loadSettings() { loadSettingsSafe(); }
-        
-        function switchTab(tab) { currentTab=tab; document.querySelectorAll('button[id^="tab-"]').forEach(b=>{b.className=b.id===`tab-${tab}`?`flex-1 py-3 tab-active ${tab==='followup'?'text-red-600':''}`:`flex-1 py-3 tab-inactive ${tab==='followup'?'text-red-600':''}`}); ['attendanceControls','marksControls','followupControls','attendanceActions','marksActions','followupActions','mainList'].forEach(id=>document.getElementById(id).classList.add('hidden')); if(tab==='attendance'){document.getElementById('attendanceControls').classList.remove('hidden');document.getElementById('attendanceActions').classList.remove('hidden');document.getElementById('mainList').classList.remove('hidden');} else if(tab==='marks'){document.getElementById('marksControls').classList.remove('hidden');document.getElementById('marksActions').classList.remove('hidden');document.getElementById('mainList').classList.remove('hidden');} else if(tab==='followup'){document.getElementById('followupControls').classList.remove('hidden');document.getElementById('followupActions').classList.remove('hidden');generateFollowUpList();} if(tab!=='followup') loadMainList(); }
-        
+        // --- EXISTING UTILS (Attendance, Marks, etc.) ---
         function loadMainList() {
             const batchSelectId = currentTab === 'attendance' ? 'batchSelect' : 'marksBatchSelect';
-            const batchName = document.getElementById(batchSelectId).value;
+            const batch = document.getElementById(batchSelectId).value;
             const list = document.getElementById('mainList'); list.innerHTML = '';
-            
-            const students = data.students.filter(s => s.batch === batchName && s.active !== false);
-            
-            if(!batchName) { list.innerHTML = `<div class="p-8 text-center text-gray-400">No batch selected.</div>`; return; }
+            const students = data.students.filter(s => s.batch === batch && s.active !== false);
             if(students.length === 0) { list.innerHTML = `<div class="p-8 text-center text-gray-400">Empty Batch. Add students.</div>`; return; }
-
             if(currentTab === 'attendance') {
                 selectedAbsent = []; updateAbsentCount();
                 students.forEach(s => {
@@ -438,78 +521,28 @@
                 });
             }
         }
-        function handleBatchChange() { currentMarks={}; loadMainList(); }
-        function handleMarksBatchChange() { currentMarks={}; loadMainList(); }
-        function toggleAbsent(id, c) { const s=data.students.find(x=>x.id===id); if(c) selectedAbsent.push(s); else selectedAbsent=selectedAbsent.filter(x=>x.id!==id); updateAbsentCount(); }
-        function updateAbsentCount() { document.getElementById('absentCount').innerText=selectedAbsent.length; }
-        function saveAttendance() { const b=document.getElementById('batchSelect').value; if(selectedAbsent.length===0 && !confirm("Save 'All Present'?")) return; const d=new Date().toISOString().split('T')[0]; data.history=data.history.filter(h=>!(h.date===d && h.batch===b)); data.history.push({date:d, batch:b, absentIds:selectedAbsent.map(s=>s.id)}); saveData(); alert("✅ Saved!"); }
-        function updateMarks(id, v) { if(v) currentMarks[id]=v; else delete currentMarks[id]; }
-        function saveMarks() { const tn=document.getElementById('testName').value, mm=document.getElementById('maxMarks').value, td=document.getElementById('testDateInput').value||new Date().toISOString().split('T')[0]; if(!tn||!mm) return alert("Enter Test Details"); if(Object.keys(currentMarks).length===0) return alert("Enter Marks"); const b=document.getElementById('marksBatchSelect').value; data.marksHistory.push({date:td, batch:b, title:tn, maxMarks:mm, results:currentMarks}); saveData(); alert("✅ Saved!"); }
-
-        function generateFollowUpList() {
-            const listArea = document.getElementById('followupListArea'); listArea.innerHTML = '';
-            const today = new Date(); const mPrefix = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
-            let def=[], weak=[], pCount=0, cCount=0;
-            
-            // Fix: Ensure visibleBatchNames are derived from Normalized Objects
-            const normalizedBatches = data.batches.map(b => (typeof b === 'string') ? { name: b, teacher: "All" } : b);
-            const visibleBatchNames = normalizedBatches.filter(b => selectedTeacher==='All' || b.teacher===selectedTeacher || b.teacher==='All').map(b=>b.name);
-
-            data.students.forEach(s => {
-                if(s.active===false || !visibleBatchNames.includes(s.batch)) return; 
-                
-                let abs=0; data.history.forEach(h=>{if(h.date.startsWith(mPrefix) && h.absentIds.includes(s.id)) abs++;});
-                if(abs>=2) def.push({...s, reason:`Attendance (${abs} leaves)`, type:'Attendance'});
-                
-                const bTests = data.marksHistory.filter(t => t.batch === s.batch).sort((a,b)=>new Date(b.date)-new Date(a.date));
-                if(bTests.length>0) {
-                    const last=bTests[0]; 
-                    if(last.results[s.id]) {
-                        const m=parseFloat(last.results[s.id]), mx=parseFloat(last.maxMarks);
-                        if(!isNaN(m) && (m/mx)<0.5) weak.push({...s, reason:`Low Marks: ${m}/${mx}`, type:'Marks'});
-                    }
-                }
-            });
-
-            const renderRow = (s) => {
-                const fUp = data.followUps.find(f => f.studentId === s.id && f.date === todayStr && f.reason === s.type);
-                const isDone = fUp && fUp.status === 'Done';
-                if(isDone) cCount++; else pCount++;
-                return `<div class="bg-white p-3 rounded-lg shadow border-l-4 ${s.type==='Attendance'?'border-red-500':'border-yellow-500'} relative"><div class="flex justify-between items-start"><div><h4 class="font-bold text-gray-800 text-sm">${s.name} <span class="text-xs text-gray-400">(${s.batch})</span></h4><p class="text-xs font-bold ${isDone?'text-green-600':'text-red-600'}">${s.reason}</p>${isDone?`<p class="text-xs text-gray-600 mt-1 italic">"${fUp.remark}"</p>`:''}</div><div class="flex flex-col gap-1 w-24">${!isDone?`${s.father?`<a href="tel:${s.father}" onclick="openRemarkModal(${s.id},'${s.type}','${s.name}')" class="bg-blue-100 text-blue-700 py-1 rounded text-xs font-bold text-center">Father</a>`:''} ${s.mother?`<a href="tel:${s.mother}" onclick="openRemarkModal(${s.id},'${s.type}','${s.name}')" class="bg-pink-100 text-pink-700 py-1 rounded text-xs font-bold text-center">Mother</a>`:''}`:`<span class="text-green-600 font-bold text-xs text-right">Done</span>`}</div></div></div>`;
-            };
-            let h=''; if(def.length>0) { h+=`<h4 class="font-bold text-gray-500 text-xs mb-2">ATTENDANCE RISK</h4>`; def.forEach(s=>h+=renderRow(s)); }
-            if(weak.length>0) { h+=`<h4 class="font-bold text-gray-500 text-xs mb-2 mt-4">PERFORMANCE ALERT</h4>`; weak.forEach(s=>h+=renderRow(s)); }
-            if(def.length===0 && weak.length===0) h=`<div class="text-center text-gray-400 p-10">No alerts!</div>`;
-            listArea.innerHTML = h; document.getElementById('pendingCallsCount').innerText=pCount; document.getElementById('completedCallsCount').innerText=cCount;
-        }
-
-        let currentFollowUpStudent = null;
-        function openRemarkModal(id, type, name) { currentFollowUpStudent={id,type}; document.getElementById('callingStudentName').innerText=name; document.getElementById('callRemark').value=''; setTimeout(()=>document.getElementById('callRemarkModal').classList.remove('hidden'),1000); }
-        function saveCallRemark() { const r=document.getElementById('callRemark').value; if(!r) return alert("Remark?"); const {id,type}=currentFollowUpStudent; data.followUps=data.followUps.filter(f=>!(f.studentId===id && f.date===todayStr && f.reason===type)); data.followUps.push({studentId:id, date:todayStr, reason:type, remark:r, status:'Done'}); saveData(); closeModal('callRemarkModal'); generateFollowUpList(); }
-        function openFollowUpReportModal() { document.getElementById('followupReportModal').classList.remove('hidden'); showReportTab('pending'); }
-        function showReportTab(t) { 
-            const c=document.getElementById('reportContent'); c.innerHTML=''; 
-            document.getElementById('rtab-pending').className=t==='pending'?"flex-1 py-3 text-red-600 bg-red-50 border-b-2 border-red-600":"flex-1 py-3 text-gray-500";
-            document.getElementById('rtab-completed').className=t==='completed'?"flex-1 py-3 text-green-600 bg-green-50 border-b-2 border-green-600":"flex-1 py-3 text-gray-500";
-            if(t==='completed') {
-                 const done = data.followUps.filter(f=>f.date===todayStr);
-                 if(done.length===0) c.innerHTML='<div class="text-center p-5 text-gray-400">No calls yet.</div>';
-                 else done.forEach(f=>{ const s=data.students.find(x=>x.id===f.studentId); if(s) c.innerHTML+=`<div class="p-3 border-b"><div class="flex justify-between"><span class="font-bold">${s.name}</span><span class="text-xs bg-gray-100 px-2 rounded">${f.reason}</span></div><div class="text-sm text-green-700 italic">"${f.remark}"</div></div>`; });
-            } else { c.innerHTML='<div class="text-center p-5 text-gray-400">View main dashboard for pending list.</div>'; }
-        }
-
-        // --- COMMON UTILS ---
-        function openSendModal(t){ const l=document.getElementById('sendingList'); l.innerHTML=''; if(t==='attendance'){ if(selectedAbsent.length===0) return alert("No absents"); selectedAbsent.forEach((s,i)=>appendSendRow(l,i,s,data.settings.template.replace('{name}',s.name),'Att')); } else { const tn=document.getElementById('testName').value, mm=document.getElementById('maxMarks').value, td=document.getElementById('testDateInput').value; if(!tn) return alert("Details?"); let c=0; for(const [id,mk] of Object.entries(currentMarks)){ const s=data.students.find(x=>x.id==id); if(s){ let isAbs = (mk.toLowerCase() === 'ab' || mk.toLowerCase() === 'absent'); let msg = isAbs ? data.settings.absentTemplate.replace('{name}', s.name).replace('{test}', tn).replace('{date}', td) : data.settings.marksTemplate.replace('{test}',tn).replace('{marks}',mk).replace('{max}',mm).replace('{name}',s.name); appendSendRow(l,c++,s,msg, isAbs ? `ABSENT` : `Marks: ${mk}`); } } } document.getElementById('sendModal').classList.remove('hidden'); }
-        function appendSendRow(c,i,s,m,l){ c.innerHTML+=`<div class="bg-gray-50 p-3 rounded-xl border shadow-sm mb-2"><div class="flex justify-between mb-2"><span class="font-bold text-gray-800">${i+1}. ${s.name}</span><span class="text-xs font-bold bg-gray-200 px-2 py-1 rounded text-gray-600">${l}</span></div><div class="flex gap-2">${s.father?`<a href="https://wa.me/${s.father}?text=${encodeURIComponent(m)}" target="_blank" class="flex-1 bg-green-100 text-green-800 py-2 rounded text-center text-sm font-bold">Father</a>`:''} ${s.mother?`<a href="https://wa.me/${s.mother}?text=${encodeURIComponent(m)}" target="_blank" class="flex-1 bg-pink-100 text-pink-800 py-2 rounded text-center text-sm font-bold">Mother</a>`:''}</div></div>`; }
-        function downloadData() { const s="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(data)); const a=document.createElement('a'); a.href=s; a.download="bcc_v29_backup.json"; document.body.appendChild(a); a.click(); a.remove(); }
-        // FIX: Ensure data.teachers exists on restore
-        function uploadData(i) { const f=i.files[0]; if(!f) return; const r=new FileReader(); r.onload=function(e){ try { const n=JSON.parse(e.target.result); if(!n.students) throw new Error("Invalid"); if(confirm("Overwrite data?")) { data=n; if(!data.teachers) data.teachers=[]; saveData(); alert("Restored!"); closeModal('settingsModal'); } } catch(e) { alert("Invalid"); } }; r.readAsText(f); }
+        function handleBatchChange() { currentMarks = {}; loadMainList(); }
+        function handleMarksBatchChange() { currentMarks = {}; loadMainList(); }
+        function toggleAbsent(id, checked) { const s=data.students.find(x=>x.id===id); if(checked) selectedAbsent.push(s); else selectedAbsent=selectedAbsent.filter(x=>x.id!==id); updateAbsentCount(); }
+        function updateAbsentCount() { document.getElementById('absentCount').innerText = selectedAbsent.length; }
+        function saveAttendance() { const batch=document.getElementById('batchSelect').value; if(selectedAbsent.length===0 && !confirm("Save as 'All Present'?")) return; const today = new Date().toISOString().split('T')[0]; data.history=data.history.filter(h=>!(h.date===today && h.batch===batch)); data.history.push({date:today, batch:batch, absentIds:selectedAbsent.map(s=>s.id)}); saveData(); alert("✅ Saved!"); }
+        function updateMarks(id, val) { if(val) currentMarks[id]=val; else delete currentMarks[id]; }
+        function saveMarks() { const tn=document.getElementById('testName').value, mm=document.getElementById('maxMarks').value, td=document.getElementById('testDateInput').value||new Date().toISOString().split('T')[0]; if(!tn||!mm) return alert("Enter Test Details"); if(Object.keys(currentMarks).length===0) return alert("Enter Marks"); const batch=document.getElementById('marksBatchSelect').value; data.marksHistory.push({date:td, batch:batch, title:tn, maxMarks:mm, results:currentMarks}); saveData(); alert("✅ Saved!"); }
+        
+        function renderBatches() { const h = (data.batches || []).map(b => `<option value="${b}">${b}</option>`).join(''); ['batchSelect','marksBatchSelect','reportBatch','historyBatch'].forEach(id => {const el=document.getElementById(id); if(el) el.innerHTML = h;}); }
+        function addNewBatch() { const n=prompt("New Batch Name:"); if(n && !data.batches.includes(n)){ data.batches.push(n); saveData(); renderBatches(); document.getElementById('batchSelect').value=n; loadMainList(); }}
+        function openAddStudentModal() { document.getElementById('addStudentModal').classList.remove('hidden'); }
+        function addStudentFromModal() { const n=document.getElementById('addName').value; let f=document.getElementById('addFather').value; let m=document.getElementById('addMother').value; const b=document.getElementById('batchSelect').value; if(!n) return alert("Name required"); if(f && f.length===10) f='91'+f; if(m && m.length===10) m='91'+m; data.students.push({id:Date.now(), name:n, father:f, mother:m, batch:b, active: true}); saveData(); loadMainList(); closeModal('addStudentModal'); document.getElementById('addName').value=''; document.getElementById('addFather').value=''; document.getElementById('addMother').value=''; }
+        function markStudentLeft(id) { if(confirm("Remove student from batch?")) { const s = data.students.find(x => x.id === id); s.active = false; saveData(); loadMainList(); } }
+        function openLeftStudentsModal() { document.getElementById('leftStudentsModal').classList.remove('hidden'); const tb = document.getElementById('leftStudentsList'); tb.innerHTML=''; data.students.filter(s => s.active === false).forEach(s => { tb.innerHTML += `<tr class="border-b"><td class="p-2">${s.name}</td><td class="p-2"><button onclick="restore(${s.id})" class="text-green-600 font-bold text-xs bg-green-100 px-2 py-1 rounded">RESTORE</button></td></tr>`; }); }
+        function restore(id) { const s=data.students.find(x=>x.id===id); s.active=true; saveData(); openLeftStudentsModal(); loadMainList(); }
+        function downloadData() { const s="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(data)); const a=document.createElement('a'); a.href=s; a.download="bcc_backup.json"; document.body.appendChild(a); a.click(); a.remove(); }
+        function uploadData(i) { const f=i.files[0]; if(!f) return; const r=new FileReader(); r.onload=function(e){ try { const n=JSON.parse(e.target.result); if(!n.students) throw new Error("Invalid"); if(confirm("Overwrite data?")) { data=n; saveData(); alert("Data Restored!"); closeModal('settingsModal'); } } catch(e) { alert("Invalid File"); } }; r.readAsText(f); }
         function downloadFullReport() { let csv = "Name,Father,Mother,Batch\n"; data.students.forEach(s => csv += `${s.name},${s.father},${s.mother},${s.batch}\n`); const link = document.createElement("a"); link.href = encodeURI("data:text/csv;charset=utf-8,"+csv); link.download = "all_students.csv"; document.body.appendChild(link); link.click(); link.remove(); }
         function downloadSampleCSV() { const csv = "data:text/csv;charset=utf-8,Name,FatherMobile,MotherMobile\nAarav,9876543210,9876543211"; const a=document.createElement("a"); a.href=encodeURI(csv); a.download="students_sample.csv"; document.body.appendChild(a); a.click(); a.remove(); }
         function importCSV(input) { const file = input.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = function(e) { const text = e.target.result.replace(/\r\n/g, '\n').replace(/\r/g, '\n'); const rows = text.split('\n').slice(1); const batch = document.getElementById('batchSelect').value; let count = 0; rows.forEach(row => { const cols = row.split(','); if(cols.length >= 2) { let name = cols[0].trim(); let f = cols[1]?.trim() || ""; let m = cols[2]?.trim() || ""; if(name) { if(f && !f.startsWith('91') && f.length === 10) f = '91'+f; if(m && !m.startsWith('91') && m.length === 10) m = '91'+m; data.students.push({ id: Date.now()+Math.random(), name: name, father: f, mother: m, batch: batch, active: true }); count++; } } }); saveData(); loadMainList(); alert(`${count} students imported!`); }; reader.readAsText(file); }
         function downloadClassListForMarks() { const batch = document.getElementById('marksBatchSelect').value; const students = data.students.filter(s => s.batch === batch && s.active !== false); if(students.length === 0) return alert("No students in this batch"); const dateStr = new Date().toLocaleDateString('en-GB').replace(/\//g, '-'); const cleanBatch = batch.replace(/[^a-z0-9]/gi, '_'); let csv = "Name,Marks\n"; students.forEach(s => csv += `${s.name},\n`); const link = document.createElement("a"); link.href = encodeURI("data:text/csv;charset=utf-8,"+csv); link.download = `Marks_${cleanBatch}_${dateStr}.csv`; document.body.appendChild(link); link.click(); link.remove(); }
         function importMarksCSV(input) { const file = input.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = function(e) { const text = e.target.result.replace(/\r\n/g, '\n').replace(/\r/g, '\n'); const rows = text.split('\n').slice(1); const batch = document.getElementById('marksBatchSelect').value; const batchStudents = data.students.filter(s => s.batch === batch); let count = 0; let notFound = 0; rows.forEach(row => { if(!row.trim()) return; const cols = row.split(','); if(cols.length >= 2) { const csvName = cols[0].trim(); const marks = cols[1].trim(); if(csvName) { const student = batchStudents.find(s => s.name.toLowerCase() === csvName.toLowerCase()); if(student) { if(marks !== "") { currentMarks[student.id] = marks; count++; } } else { notFound++; } } } }); loadMainList(); let msg = `✅ Imported ${count} marks successfully.`; if(notFound > 0) msg += `\n⚠️ Warning: ${notFound} names in CSV did not match any student.`; setTimeout(() => alert(msg), 100); }; reader.readAsText(file); }
-        
         function openEditModal(id) { const s=data.students.find(x=>x.id===id); document.getElementById('editId').value=s.id; document.getElementById('editName').value=s.name; document.getElementById('editFather').value=s.father.replace('91',''); document.getElementById('editMother').value=s.mother.replace('91',''); document.getElementById('editModal').classList.remove('hidden'); }
         function saveStudentEdit() { const id=document.getElementById('editId').value; const n=document.getElementById('editName').value; let f=document.getElementById('editFather').value; let m=document.getElementById('editMother').value; if(f&&f.length===10) f='91'+f; if(m&&m.length===10) m='91'+m; const idx=data.students.findIndex(x=>x.id==id); if(idx!==-1){ data.students[idx].name=n; data.students[idx].father=f; data.students[idx].mother=m; saveData(); closeModal('editModal'); loadMainList(); } }
         function openStudentProfile(id) { const s = data.students.find(x => x.id === id); if(!s) return; const tests = data.marksHistory.filter(m => m.results[id] && m.batch === s.batch); const modalBody = document.getElementById('profileContent'); const parentBtn = document.getElementById('sendProfileReportBtn'); let html = `<div class="text-center mb-6"><div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2 text-2xl font-bold text-blue-600">${s.name.charAt(0)}</div><h2 class="text-xl font-bold text-gray-800">${s.name}</h2><p class="text-sm text-gray-500">${s.batch}</p></div><h4 class="font-bold text-gray-600 mb-3 text-xs uppercase tracking-wider">Test Performance History</h4>`; if(tests.length === 0) { html += `<div class="text-center text-gray-400 py-10">No test records found.</div>`; parentBtn.classList.add('hidden'); } else { parentBtn.classList.remove('hidden'); let reportMsg = `Namaste, Performance Report for ${s.name}:\n`; let totalPct = 0; tests.forEach((t, index) => { const obtained = parseFloat(t.results[id]); const max = parseFloat(t.maxMarks); const pct = (obtained / max) * 100; totalPct += pct; reportMsg += `${index+1}. ${t.title}: ${obtained}/${max} (${pct.toFixed(0)}%)\n`; let barColor = pct >= 80 ? 'bg-green-500' : (pct >= 50 ? 'bg-blue-500' : 'bg-red-500'); html += `<div class="mb-4"><div class="flex justify-between text-sm mb-1"><span class="font-bold text-gray-700">${t.title}</span><span class="font-bold ${pct >= 80 ? 'text-green-600' : 'text-gray-600'}">${obtained}/${max}</span></div><div class="h-2 bg-gray-200 rounded-full overflow-hidden"><div class="h-full ${barColor} rounded-full" style="width: ${pct}%"></div></div><div class="text-xs text-gray-400 mt-1">${new Date(t.date).toLocaleDateString()}</div></div>`; }); const avg = totalPct / tests.length; reportMsg += `\nOverall Average: ${avg.toFixed(1)}%\n- Brilliant College of Commerce (BCC)`; const encoded = encodeURIComponent(reportMsg); const phone = s.father || s.mother; if(phone) { parentBtn.onclick = () => window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank'); parentBtn.innerHTML = `<i class="fab fa-whatsapp"></i> Send Report to Parent (${phone.slice(-4)})`; } else { parentBtn.innerHTML = "No Parent Number Linked"; parentBtn.disabled = true; } } modalBody.innerHTML = html; document.getElementById('studentProfileModal').classList.remove('hidden'); }
@@ -535,10 +568,9 @@
         function appendSendRow(c,i,s,m,l){ c.innerHTML+=`<div class="bg-gray-50 p-3 rounded-xl border shadow-sm mb-2"><div class="flex justify-between mb-2"><span class="font-bold text-gray-800">${i+1}. ${s.name}</span><span class="text-xs font-bold bg-gray-200 px-2 py-1 rounded text-gray-600">${l}</span></div><div class="flex gap-2">${s.father?`<a href="https://wa.me/${s.father}?text=${encodeURIComponent(m)}" target="_blank" class="flex-1 bg-green-100 text-green-800 py-2 rounded text-center text-sm font-bold">Father</a>`:''} ${s.mother?`<a href="https://wa.me/${s.mother}?text=${encodeURIComponent(m)}" target="_blank" class="flex-1 bg-pink-100 text-pink-800 py-2 rounded text-center text-sm font-bold">Mother</a>`:''}</div></div>`; }
         function saveSettings() { data.settings.audioUrl = document.getElementById('audioLink').value; data.settings.template = document.getElementById('msgTemplate').value; data.settings.marksTemplate = document.getElementById('marksTemplate').value; data.settings.absentTemplate = document.getElementById('absentTemplate').value; saveData(); closeModal('settingsModal'); }
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-        function openSettings() { document.getElementById('settingsModal').classList.remove('hidden'); renderTeacherList(); }
-        function renderTeacherList() { document.getElementById('teacherList').innerHTML = data.teachers.map(t => `<span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded border border-yellow-200">${t} <button onclick="removeTeacher('${t}')" class="ml-1 text-red-500 font-bold">x</button></span>`).join(''); }
+        function openSettings() { document.getElementById('settingsModal').classList.remove('hidden'); }
 
         init();
     </script>
 </body>
-</html>
+    </html>
